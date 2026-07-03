@@ -1,0 +1,141 @@
+---
+title: "Responsive Design Breakpoints in Pelisgo"
+sidebarTitle: "Responsive Design"
+description: "Pelisgo adapts its layout across three breakpoints — desktop, tablet (1024px), and mobile (768px/400px) — using CSS media queries without any framework."
+---
+
+Pelisgo uses pure CSS media queries to adapt its layout from a wide desktop grid down to a single-column mobile view. There are no third-party CSS frameworks or JavaScript-driven layout systems involved — all responsiveness is handled directly in `css/styles.css` through three `@media` blocks targeting tablet, mobile, and small-mobile viewport widths.
+
+## Desktop (> 1024px)
+
+The default styles define the wide-screen experience. No media query wraps these rules — they are the baseline.
+
+- Cards are `180px` wide and `380px` tall, displayed in a multi-column flex-wrap grid capped at `1200px` wide.
+- The header is a single horizontal row: logo on the left, nav links in the center, and the search bar on the right, all aligned via `justify-content: space-around`.
+- The header carries a `margin-bottom: 200px` below it to create intentional breathing room between the nav and the card grid. The card grid offsets this with `margin-top: -150px`.
+- The footer wrapper (`.fo`) has `padding: 150px` for generous vertical spacing.
+
+## Tablet (≤ 1024px)
+
+At viewport widths of `1024px` or below — targeting small laptops and tablet devices in landscape — two targeted adjustments tighten the vertical spacing that was set for large screens:
+
+```css
+@media (max-width: 1024px) {
+  .head {
+    margin-bottom: 100px;
+  }
+  .seccionPeliculas {
+    margin-top: -50px;
+  }
+}
+```
+
+- **`.head` margin-bottom** is reduced from `200px` to `100px`, closing the gap between the sticky header and the content below it on narrower displays.
+- **`.seccionPeliculas` margin-top** is pulled to `-50px`, compensating for the reduced header margin so the card grid still sits snugly beneath it without an awkward blank band.
+
+The overall horizontal card layout remains the same multi-column flex-wrap grid at this breakpoint.
+
+## Mobile (≤ 768px)
+
+The most comprehensive breakpoint targets smartphones and small tablets in portrait orientation. It reconfigures both the header and the card grid:
+
+```css
+@media (max-width: 768px) {
+  .head {
+    flex-direction: column;
+    height: auto;
+    margin-bottom: 50px;
+    gap: 20px;
+    padding: 20px 10px;
+  }
+
+  .head .logo img {
+    height: 80px;
+  }
+
+  .barra .li-d {
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .buscador {
+    padding-left: 0;
+    margin-top: 30px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  #Buscador {
+    width: 90%;
+  }
+
+  .seccionPeliculas {
+    margin-top: 20px;
+    padding: 10px;
+    gap: 15px;
+  }
+
+  .card {
+    width: calc(50% - 15px);
+    height: 340px;
+  }
+
+  .card img {
+    height: 200px;
+  }
+
+  #reproductor-box iframe {
+    height: 250px !important;
+  }
+
+  .contenedor-reproductor {
+    padding: 0 10px;
+  }
+
+  .footerF {
+    margin-left: 0;
+    text-align: center;
+    width: 100%;
+  }
+
+  .fo {
+    padding: 50px 20px;
+    justify-content: center;
+  }
+}
+```
+
+The key changes at this breakpoint are:
+
+| Element | Change | Effect |
+|---|---|---|
+| `.head` | `flex-direction: column`, `height: auto` | Logo and nav stack vertically instead of sitting side-by-side |
+| `.barra .li-d` | `flex-wrap: wrap`, `justify-content: center`, `gap: 10px` | Nav links wrap and center beneath the logo |
+| `#Buscador` | `width: 90%` | Search bar spans nearly the full screen width |
+| `.seccionPeliculas` | `margin-top: 20px`, `gap: 15px` | Removes the desktop negative margin; tightens card spacing |
+| `.card` | `width: calc(50% - 15px)`, `height: 340px` | Two-column card layout; cards are slightly shorter |
+| `.card img` | `height: 200px` | Poster image reduced to match the shorter card |
+| `#reproductor-box iframe` | `height: 250px !important` | Video player height drops to fit smaller screens |
+| `.fo` / `.footerF` | `padding: 50px 20px`, `text-align: center` | Footer centers and reduces padding |
+
+## Small Mobile (≤ 400px)
+
+For the narrowest devices — older smartphones and small-screen Android handsets — a final breakpoint collapses the two-column card layout into a single centered column:
+
+```css
+@media (max-width: 400px) {
+  .card {
+    width: 100%;
+    max-width: 250px;
+  }
+}
+```
+
+Cards expand to `100%` of the container width but are capped at `250px` so they don't stretch uncomfortably wide on a narrow but not tiny screen. Combined with the `justify-content: center` on `.seccionPeliculas`, each card sits centered in a single column.
+
+<Tip>
+Test every breakpoint using your browser's built-in DevTools responsive mode. In Chrome or Firefox, open DevTools, click the device-toggle icon (or press **Ctrl + Shift + M** / **Cmd + Shift + M**), and drag the viewport width handle across the four key thresholds: above `1024px` (desktop), at `1024px` (tablet), at `768px` (mobile), and at `400px` (small mobile). This lets you verify the layout shifts without needing a physical device.
+</Tip>

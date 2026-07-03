@@ -1,0 +1,205 @@
+---
+title: "Pelisgo Project Structure and File Layout"
+sidebarTitle: "Project Structure"
+description: "A complete map of the Pelisgo repository: HTML pages, JavaScript module, CSS stylesheet, and static assets with their roles explained."
+---
+
+Pelisgo is a zero-dependency, zero-build-tool project. Every file in the repository is either served directly to the browser or used as a static asset — there is no compilation step, no transpilation, and no dependency resolution. You can open the project folder, read any file, and immediately understand exactly what it does. The entire codebase fits comfortably in a single screen of your text editor.
+
+<Note>
+  There is no `package.json`, no `node_modules` directory, and no bundler configuration in this project. Nothing needs to be installed before opening `index.html` in a browser. The only external dependency is the TMDB API, accessed at runtime over HTTPS by the browser's native `fetch()`.
+</Note>
+
+## File Tree
+
+```text
+proyecto-pagina-peliculas/
+├── index.html          # Movies page
+├── series.html         # TV series page
+├── generos.html        # Genres page (in progress)
+├── js/
+│   └── main.js         # Shared data-fetching and rendering module
+├── css/
+│   └── styles.css      # Global stylesheet
+└── assets/
+    └── images/         # Logo, icons, and static image assets
+```
+
+---
+
+## `index.html` — Movies Page
+
+`index.html` is the application's entry point and the movies browsing page. It defines the full page structure: a sticky `<header>` containing the logo and navigation bar, a `<main>` element with the class `seccionPeliculas` that acts as the card grid container, and a `<footer>`.
+
+The navbar includes three navigation links — **Peliculas** (`index.html`), **Series** (`series.html`), and a **Generos** hover-dropdown — plus a search `<input>` element with `id="Buscador"` that `main.js` attaches its live-search event listener to.
+
+The `<main>` scaffold pre-populates 24 empty `<div class="card">` placeholders. These are immediately overwritten by `mostrarCards()` in `main.js` once the first TMDB API response arrives, ensuring the grid area is never visibly empty during the brief network round-trip.
+
+```html
+<main class="seccionPeliculas">
+    <div class="card"></div>
+    <div class="card"></div>
+    <!-- ... 22 more placeholder cards ... -->
+</main>
+```
+
+The page loads `js/main.js` via a `defer`-attributed `<script>` tag at the bottom of `<body>`, guaranteeing the DOM is fully parsed before the script runs:
+
+```html
+<script src="js/main.js" defer></script>
+```
+
+---
+
+## `series.html` — TV Series Page
+
+`series.html` is structurally identical to `index.html` — same header, same nav, same card grid scaffold, same footer, and the same `<script src="js/main.js" defer>` line. The only meaningful difference is its filename.
+
+That filename difference is all `main.js` needs. At startup, the script evaluates:
+
+```js
+const esPaginaSeries = window.location.pathname.includes('series');
+const tipo = esPaginaSeries ? 'tv' : 'movie';
+```
+
+When the visitor is on `series.html`, `esPaginaSeries` is `true` and `tipo` becomes `'tv'`. Every subsequent API call, title lookup (`item.name`), and date lookup (`item.first_air_date`) then uses the TV series variant of the TMDB API automatically. No separate JavaScript file, no conditional imports — one URL check bifurcates the entire data layer.
+
+---
+
+## `generos.html` — Genres Page (In Progress)
+
+`generos.html` is a placeholder file that is currently empty. It represents the planned genre-filtering experience, reachable from the **Generos** dropdown in the navigation bar. The dropdown already lists 16 genre categories (Acción, Aventura, Comedia, Terror, Ciencia Ficción, and more) defined as static `<li>` elements in both HTML pages, but the links currently point to `#` pending implementation.
+
+The intended behaviour is for genre selections to call TMDB's `/discover/movie` or `/discover/tv` endpoints with a `with_genres` filter parameter, rendering the card grid filtered by the chosen genre.
+
+---
+
+## `js/main.js` — Shared Data-Fetching and Rendering Module
+
+`js/main.js` is the sole JavaScript file in the project and does everything: configuration, page detection, API fetching, DOM rendering, and event binding. It is loaded by both HTML pages and adapts its behaviour at runtime based on the URL.
+
+### Configuration constants
+
+```js
+const API_KEY = '62d0e228965166bf48326dcfc99023d3';
+const BASE_URL = 'https://api.themoviedb.org/3';
+const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+```
+
+### DOM references and page detection
+
+```js
+const seccionContenido = document.querySelector('.seccionPeliculas');
+const buscador = document.getElementById('Buscador');
+
+const esPaginaSeries = window.location.pathname.includes('series');
+const tipo = esPaginaSeries ? 'tv' : 'movie';
+```
+
+### `obtenerContenido(query)` — API fetch function
+
+The async function `obtenerContenido` accepts an optional search query string. If a query is provided it calls TMDB's `/search/{tipo}` endpoint; otherwise it calls `/{tipo}/popular`. Both endpoints are scoped to `language=es-ES`. Results are passed directly to `mostrarCards()`:
+
+```js
+async function obtenerContenido(query = '') {
+    try {
+        let endpoint;
+        if (query) {
+            endpoint = `${BASE_URL}/search/${tipo}?api_key=${API_KEY}&language=es-ES&query=${query}`;
+        } else {
+            endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+        }
+
+        const respuesta = await fetch(endpoint);
+        const datos = await respuesta.json();
+        
+        if (datos.results) {
+            mostrarCards(datos.results);
+        }
+    } catch (error) {
+        console.error('Error al obtener los datos:', error);
+    }
+}
+```
+
+### `mostrarCards(items)` — DOM rendering function
+
+`mostrarCards` clears the `.seccionPeliculas` container, then iterates over the TMDB results array. For each item it resolves the correct title and date fields based on `esPaginaSeries`, builds a poster URL using `IMAGE_BASE_URL`, creates a `.card` `<div>` with an `<img>` and an `.info` block, and appends it to the grid:
+
+```js
+function mostrarCards(items) {
+    seccionContenido.innerHTML = ''; 
+    
+    items.forEach(item => {
+        const titulo = esPaginaSeries ? item.name : item.title;
+        const fechaOriginal = esPaginaSeries ? item.first_air_date : item.release_date;
+        const año = fechaOriginal ? fechaOriginal.split('-')[0] : 'S/N';
+
+        const poster = item.poster_path 
+            ? IMAGE_BASE_URL + item.poster_path 
+            : 'https://via.placeholder.com/500x750?text=Sin+Imagen';
+
+        const card = document.createElement('div');
+        card.classList.add('card');
+
+        card.innerHTML = `
+            <img src="${poster}" alt="${titulo}">
+            <div class="info">
+                <h3 class="tituloPeli">${titulo}</h3>
+                <span class="fecha">${año}</span>
+            </div>
+        `;
+        seccionContenido.appendChild(card);
+    });
+}
+```
+
+### Search event listener and auto-init
+
+The `keyup` listener on `#Buscador` fires `obtenerContenido` with the current input value once the user has typed more than two characters. Clearing the field (empty string) resets the grid back to the popular list. The final line calls `obtenerContenido()` with no arguments immediately on page load:
+
+```js
+if (buscador) {
+    buscador.addEventListener('keyup', (e) => {
+        if (e.target.value.length > 2) {
+            obtenerContenido(e.target.value);
+        } else if (e.target.value === "") {
+            obtenerContenido();
+        }
+    });
+}
+
+// Inicio
+obtenerContenido();
+```
+
+---
+
+## `css/styles.css` — Global Stylesheet
+
+`css/styles.css` is the single stylesheet for the entire application. It covers:
+
+- **Global reset** — `margin: 0`, `padding: 0`, `box-sizing: border-box`, and a universal dark background (`#1a1a1b`) applied to the `*` selector so no element ever shows a white flash.
+- **Header / nav** — `.head` uses `position: sticky; top: 0; z-index: 1000` to keep the navbar pinned on scroll. The nav links (`a.links`) transition to a `blueviolet` background on hover with a 0.5s ease, and the search input (`#Buscador`) has a matching blueviolet background with rounded corners.
+- **Genres dropdown** — `.menu-desplegable` is hidden by default (`display: none`) and revealed on `.li-d li:hover` via `display: flex`. Items are laid out in a two-column CSS Flex grid, each with a blueviolet pill background that darkens on hover.
+- **Card grid** — `.seccionPeliculas` is a `flex-wrap: wrap` container centered in a `max-width: 1200px` column. Each `.card` is 180 × 380 px with a `groove blueviolet` border, `overflow: hidden`, and a `translateY(-10px)` lift on hover with a 0.3s transition.
+- **Responsive breakpoints** — three `@media` blocks handle layout shifts:
+  - `max-width: 1024px` — reduces excessive header bottom margin for tablets.
+  - `max-width: 768px` — stacks logo and nav vertically, widens the search input to 90% of viewport, and switches cards to a two-column layout (`calc(50% - 15px)`).
+  - `max-width: 400px` — collapses cards to a single full-width column for very narrow viewports.
+
+---
+
+## `assets/images/` — Static Image Assets
+
+The `assets/images/` directory holds all static visuals referenced by the HTML files:
+
+| File | Used as |
+|---|---|
+| `logo_transparente.png` | Site logo in the navbar and browser favicon (`<link rel="icon">`) |
+| `cinema_3507102.png` | Inline icon next to the **Peliculas** nav link |
+| `smart-tv_1866621.png` | Inline icon next to the **Series** nav link |
+| `arrow-down_3148390.png` | Inline icon next to the **Generos** dropdown nav link |
+| `Gemini_Generated_Image_8pembi8pembi8pem.ico` | Additional favicon asset generated during development |
+
+All nav icons are sized via the `.icono-generos-peliculas-series` CSS class, which constrains them to 13.5 px wide with a transparent background so they sit cleanly beside the white link text.

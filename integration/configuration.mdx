@@ -1,0 +1,96 @@
+---
+title: "Configure Pelisgo: API Key, Language, and Image Size"
+sidebarTitle: "Configuration"
+description: "All configurable values in Pelisgo live in js/main.js — API key, base URL, image CDN size, and language/locale settings for TMDB responses."
+---
+
+Pelisgo has no configuration file, `.env` file, or build-time environment variables. All settings are defined as plain JavaScript constants at the top of `js/main.js`. To change any setting, open that file, edit the relevant constant, and save.
+
+## Configuration Constants
+
+<ParamField path="API_KEY" type="string" required>
+  Your TMDB v3 API key. Every request to the TMDB API is authenticated with this value, appended as `?api_key=YOUR_KEY` on each URL. Get a free key at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
+
+  ```javascript
+  const API_KEY = '62d0e228965166bf48326dcfc99023d3';
+  ```
+</ParamField>
+
+<ParamField path="BASE_URL" type="string" default="https://api.themoviedb.org/3">
+  The TMDB API base URL. All endpoint paths are appended to this value at runtime. Do not change this unless TMDB publishes a new API version (e.g. a future `/4` endpoint).
+
+  ```javascript
+  const BASE_URL = 'https://api.themoviedb.org/3';
+  ```
+</ParamField>
+
+<ParamField path="IMAGE_BASE_URL" type="string" default="https://image.tmdb.org/t/p/w500">
+  CDN base URL for poster images. The `poster_path` string returned by TMDB (e.g. `/abc123.jpg`) is appended directly to this value. Change the `w500` segment to a different size variant to control the resolution and file size of poster images.
+
+  ```javascript
+  const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+  ```
+</ParamField>
+
+<Tip>
+  If you are deploying Pelisgo to a public server, avoid embedding your `API_KEY` directly in client-side JavaScript — it will be visible to anyone who views your page source or network requests. Instead, route TMDB requests through a lightweight backend proxy (e.g. a Cloudflare Worker, a Vercel serverless function, or a small Express server) that injects the key server-side, or use your build tool's environment variable injection to keep the key out of your source repository.
+</Tip>
+
+## Language / Locale
+
+The TMDB API returns localised metadata (titles, overviews, dates) based on a `language` query parameter. In Pelisgo, the locale is embedded directly in the endpoint strings inside `obtenerContenido()`:
+
+```javascript
+endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+```
+
+To change the language, replace `es-ES` with any BCP 47 locale code that TMDB supports. Common options:
+
+| Locale code | Language / Region |
+|---|---|
+| `es-ES` | Spanish (Spain) — *Pelisgo default* |
+| `en-US` | English (United States) |
+| `fr-FR` | French (France) |
+| `pt-BR` | Portuguese (Brazil) |
+| `de-DE` | German (Germany) |
+
+The `language` parameter affects both the popular-content endpoints (`/movie/popular`, `/tv/popular`) and the search endpoints (`/search/movie`, `/search/tv`). You must update both `if` branches inside `obtenerContenido()` to change the locale consistently.
+
+## Image Size Variants
+
+The `w500` segment at the end of `IMAGE_BASE_URL` is a TMDB image size variant. TMDB serves poster images at several fixed widths through the same CDN path — only the size token changes:
+
+| Variant | Approximate width | Best for |
+|---|---|---|
+| `w92` | 92 px | Thumbnails, mobile lists |
+| `w154` | 154 px | Compact grids |
+| `w185` | 185 px | Small cards |
+| `w342` | 342 px | Medium cards |
+| `w500` | 500 px | **Pelisgo default** — balanced quality and load time |
+| `w780` | 780 px | Large feature cards, retina displays |
+| `original` | Full source resolution | Maximum quality, largest file size |
+
+**Tradeoff:** Smaller variants (`w92`–`w185`) load faster and consume less bandwidth but appear blurry if rendered at a larger CSS size. Larger variants (`w780`, `original`) are crisp on high-DPI screens but significantly increase page weight, especially with grids of 20+ posters. `w500` is the recommended default for a typical movie-browser grid.
+
+To change the size, update the constant in `js/main.js`:
+
+```javascript
+// Example: switch to w342 for faster loads on mobile
+const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w342';
+```
+
+## Page Detection Variable
+
+Pelisgo serves movies on `index.html` and TV series on `series.html` using a single shared `main.js` file. The correct content type is determined automatically at runtime by inspecting the page URL:
+
+```javascript
+const esPaginaSeries = window.location.pathname.includes('series');
+const tipo = esPaginaSeries ? 'tv' : 'movie';
+```
+
+- If the current page URL contains the string `"series"` (e.g. `series.html`), `esPaginaSeries` is `true` and `tipo` is set to `'tv'`.
+- On any other page (e.g. `index.html`), `esPaginaSeries` is `false` and `tipo` is set to `'movie'`.
+
+The `tipo` variable is then used throughout `obtenerContenido()` and `mostrarCards()` to pick the right endpoint (`/movie/popular` vs `/tv/popular`), the right response field (`title` vs `name`), and the right date field (`release_date` vs `first_air_date`).
+
+This is **auto-detected** — you do not need to configure it manually. As long as your series page filename contains the word `series`, the detection works without any code changes.

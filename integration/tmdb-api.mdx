@@ -1,0 +1,174 @@
+---
+title: "TMDB API Integration in Pelisgo"
+sidebarTitle: "TMDB API"
+description: "How Pelisgo authenticates with and queries the TMDB v3 REST API — endpoints used, response shapes consumed, and the browser-native fetch() implementation."
+---
+
+Pelisgo integrates with the TMDB v3 REST API using a plain API key passed as a query parameter. All requests are made entirely client-side using the browser-native `fetch()` API — there is no backend server or proxy layer. When a page loads (or when the user types in the search box), `main.js` constructs the appropriate endpoint URL and fetches JSON data directly from TMDB's servers.
+
+## API Key Authentication
+
+TMDB v3 uses a simple API key passed as a `api_key` query parameter on every request. No `Authorization` header or OAuth flow is required. Every URL Pelisgo constructs follows this pattern:
+
+```
+https://api.themoviedb.org/3/{endpoint}?api_key=YOUR_KEY&...
+```
+
+This means the key is visible in the browser's network tab and in your source code. For a production deployment, consider routing requests through a backend proxy so the key is never exposed to end users. See the [Configuration guide](/integration/configuration) for details.
+
+## Constants Defined in main.js
+
+Three constants at the top of `js/main.js` control all API and image requests:
+
+```javascript
+const API_KEY = '62d0e228965166bf48326dcfc99023d3';
+const BASE_URL = 'https://api.themoviedb.org/3';
+const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+```
+
+- **`API_KEY`** — authenticates every TMDB request. Replace this with your own key before deploying.
+- **`BASE_URL`** — the root of the TMDB v3 REST API. Appended with the specific endpoint path at runtime.
+- **`IMAGE_BASE_URL`** — the TMDB image CDN base URL, pre-set to the `w500` size variant. Appended with the `poster_path` value returned by the API.
+
+<Warning>
+  The API key shown in the source code (`62d0e228965166bf48326dcfc99023d3`) is a public example key. **Always replace it with your own key** obtained from [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api). Leaving a shared key in production can result in rate-limiting or account suspension.
+</Warning>
+
+## Endpoints Used
+
+Pelisgo calls four TMDB endpoints — two for browsing popular content and two for live search. All four are `GET` requests and all include `language=es-ES` for Spanish-language metadata.
+
+### 1. GET /movie/popular
+
+```
+GET https://api.themoviedb.org/3/movie/popular?api_key=YOUR_KEY&language=es-ES&page=1
+```
+
+Returns a paginated list of currently popular movies. Pelisgo reads page 1 only.
+
+| Response field | Type | Used for |
+|---|---|---|
+| `results[].title` | string | Card heading displayed below the poster |
+| `results[].release_date` | string (`YYYY-MM-DD`) | Year extracted and shown on the card |
+| `results[].poster_path` | string \| null | Appended to `IMAGE_BASE_URL` to build the `<img src>` |
+
+### 2. GET /tv/popular
+
+```
+GET https://api.themoviedb.org/3/tv/popular?api_key=YOUR_KEY&language=es-ES&page=1
+```
+
+Returns a paginated list of currently popular TV series. Pelisgo reads page 1 only.
+
+| Response field | Type | Used for |
+|---|---|---|
+| `results[].name` | string | Card heading (note: TV uses `name`, not `title`) |
+| `results[].first_air_date` | string (`YYYY-MM-DD`) | Year extracted and shown on the card |
+| `results[].poster_path` | string \| null | Appended to `IMAGE_BASE_URL` to build the `<img src>` |
+
+### 3. GET /search/movie
+
+```
+GET https://api.themoviedb.org/3/search/movie?api_key=YOUR_KEY&language=es-ES&query={searchTerm}
+```
+
+Returns movies matching the user's search query. Triggered when the user types more than two characters in the search box on the movies page.
+
+| Response field | Type | Used for |
+|---|---|---|
+| `results[].title` | string | Card heading |
+| `results[].release_date` | string (`YYYY-MM-DD`) | Year extracted and shown on the card |
+| `results[].poster_path` | string \| null | Poster image URL |
+
+### 4. GET /search/tv
+
+```
+GET https://api.themoviedb.org/3/search/tv?api_key=YOUR_KEY&language=es-ES&query={searchTerm}
+```
+
+Returns TV series matching the user's search query. Triggered when the user types more than two characters in the search box on the series page.
+
+| Response field | Type | Used for |
+|---|---|---|
+| `results[].name` | string | Card heading |
+| `results[].first_air_date` | string (`YYYY-MM-DD`) | Year extracted and shown on the card |
+| `results[].poster_path` | string \| null | Poster image URL |
+
+## The obtenerContenido() Function
+
+All four endpoint calls funnel through a single `async` function in `main.js`:
+
+```javascript
+async function obtenerContenido(query = '') {
+    try {
+        let endpoint;
+        if (query) {
+            // Buscador
+            endpoint = `${BASE_URL}/search/${tipo}?api_key=${API_KEY}&language=es-ES&query=${query}`;
+        } else {
+            // Populares (Pelis o Series)
+            endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+        }
+
+        const respuesta = await fetch(endpoint);
+        const datos = await respuesta.json();
+        
+        if (datos.results) {
+            mostrarCards(datos.results);
+        }
+    } catch (error) {
+        console.error('Error al obtener los datos:', error);
+    }
+}
+```
+
+**How it works:**
+
+- The function accepts an optional `query` string parameter (defaulting to `''`).
+- If `query` is non-empty, a **search** endpoint is built; otherwise the **popular** endpoint is used.
+- The `tipo` variable (`'movie'` or `'tv'`) is determined at page load based on the URL, so the same function works for both the movies and series pages without any branching outside of URL construction.
+- `await fetch(endpoint)` sends the HTTP request and waits for the network response.
+- `await respuesta.json()` deserialises the JSON body.
+- The `if (datos.results)` guard ensures `mostrarCards()` is only called when the API returned a valid results array — protecting against unexpected response shapes (e.g. TMDB error objects).
+
+## Poster Images
+
+Each result item contains a `poster_path` value — a relative path such as `/abc123.jpg`. Pelisgo constructs the full image URL by prepending `IMAGE_BASE_URL`:
+
+```javascript
+const poster = item.poster_path
+    ? IMAGE_BASE_URL + item.poster_path
+    : 'https://via.placeholder.com/500x750?text=Sin+Imagen';
+```
+
+If `poster_path` is `null` (TMDB returns `null` when no poster is available), Pelisgo falls back to a placeholder image sized 500×750 px with the text "Sin Imagen".
+
+The `w500` segment in `IMAGE_BASE_URL` is a TMDB image **size variant**. TMDB's image CDN supports the following widths:
+
+| Variant | Width |
+|---|---|
+| `w92` | 92 px |
+| `w154` | 154 px |
+| `w185` | 185 px |
+| `w342` | 342 px |
+| `w500` | 500 px *(Pelisgo default)* |
+| `w780` | 780 px |
+| `original` | Full original resolution |
+
+To change the image size, update the `IMAGE_BASE_URL` constant in `js/main.js`. See the [Configuration guide](/integration/configuration#image-size-variants) for the tradeoff between load speed and quality.
+
+## Error Handling
+
+`obtenerContenido()` wraps the entire fetch-and-render flow in a `try/catch` block:
+
+```javascript
+try {
+    // ... fetch and render logic
+} catch (error) {
+    console.error('Error al obtener los datos:', error);
+}
+```
+
+If anything in the `try` block throws — a network failure, a DNS error, a JSON parse error, or an unexpected runtime exception — the error is caught and logged to the browser console via `console.error`. The cards section on the page is **not** cleared and **not** updated, so the UI retains whatever was last successfully rendered (or the skeleton placeholder cards from the initial HTML on a first-load failure).
+
+There is currently no user-facing error message or retry mechanism. For a more robust experience, consider updating the `catch` block to render an error state in `seccionContenido`.

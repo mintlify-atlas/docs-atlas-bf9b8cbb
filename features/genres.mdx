@@ -1,0 +1,114 @@
+---
+title: "Genre Filtering with Dropdown Navigation"
+sidebarTitle: "Genres"
+description: "Pelisgo includes a dropdown genre menu with 16 categories in the navbar, currently styled and accessible via hover, with filter routing in progress."
+---
+
+Pelisgo features a genre navigation dropdown present in the navbar on both `index.html` and `series.html`. The dropdown exposes 16 genre categories that appear on hover, giving users a quick visual overview of the content types available. The dropdown is implemented entirely in CSS — no JavaScript is required to show or hide it.
+
+## Genres in the Navbar
+
+The genres menu is a `<li>` element inside the `.li-d` navigation list. It contains a trigger link labelled "Generos" and a nested `<ul class="menu-desplegable">` holding all 16 genre entries:
+
+```html
+<li class="series">
+    <a class="links" href="#">Generos <img class="icono-generos-peliculas-series" src="assets/images/arrow-down_3148390.png" alt="IconoGeneros"></a>
+    <ul class="menu-desplegable">
+        <li class="listStyle"><a href="#">Acción</a></li>
+        <li class="listStyle"><a href="#">Aventura</a></li>
+        <li class="listStyle"><a href="#">Comedia</a></li>
+        <li class="listStyle"><a href="#">Documental</a></li>
+        <li class="listStyle"><a href="#">Fantasía</a></li>
+        <li class="listStyle"><a href="#">Guerra</a></li>
+        <li class="listStyle"><a href="#">Romance</a></li>
+        <li class="listStyle"><a href="#">Terror</a></li>
+        <li class="listStyle"><a href="#">Animación</a></li>
+        <li class="listStyle"><a href="#">Ciencia Ficción</a></li>
+        <li class="listStyle"><a href="#">Crimen</a></li>
+        <li class="listStyle"><a href="#">Drama</a></li>
+        <li class="listStyle"><a href="#">Documental</a></li>
+        <li class="listStyle"><a href="#">Historia</a></li>
+        <li class="listStyle"><a href="#">Suspenso</a></li>
+        <li class="listStyle"><a href="#">Misterio</a></li>
+    </ul>
+</li>
+```
+
+The 16 genre entries listed are: **Acción**, **Aventura**, **Comedia**, **Documental**, **Fantasía**, **Guerra**, **Romance**, **Terror**, **Animación**, **Ciencia Ficción**, **Crimen**, **Drama**, **Documental** (appears twice in the source), **Historia**, **Suspenso**, and **Misterio**.
+
+## Dropdown Behavior
+
+The dropdown is controlled entirely by CSS. It is hidden by default using `display: none` and revealed when the user hovers over the parent `<li>` element:
+
+```css
+.menu-desplegable {
+    position: absolute;
+    display: none;
+    list-style: none;
+    flex-direction: column;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    gap: 4px;
+    width: 210px;
+    max-height: 450px;
+    padding-top: 8px;
+    top: 100%;
+    left: 0;
+    z-index: 9998;
+    background: transparent;
+}
+
+.li-d li:hover .menu-desplegable {
+  display: flex;
+}
+```
+
+When hover is detected on the parent `<li>`, `display` switches from `none` to `flex`. The dropdown is absolutely positioned (`position: absolute; top: 100%`) so it appears directly below the trigger link without disrupting the navbar layout.
+
+The genre items are arranged into a two-column grid using `flex-wrap: wrap` combined with `max-height: 450px`. Each item is sized to `width: calc(50% - 2px)`, ensuring exactly two genres appear per row. Individual genre links are styled as blueviolet pill buttons that darken to `#7b22d3` on hover:
+
+```css
+.menu-desplegable li a {
+  display: block;
+  color: white;
+  padding: 12px 15px;
+  text-decoration: none;
+  background-color: blueviolet;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+
+.menu-desplegable li a:hover {
+  background-color: #7b22d3;
+}
+```
+
+## Current Status
+
+All 16 genre links currently point to `#` (a placeholder `href`). Clicking a genre does not yet navigate to a filtered results page or trigger an API call. Genre-based filtering is planned for a dedicated `generos.html` page.
+
+<Note>
+  Genre filtering is actively under development. The dropdown UI and hover behavior are fully implemented, but the routing and API integration for genre-filtered results have not yet been wired up. The `generos.html` page referenced in the project is the intended destination for this feature.
+</Note>
+
+## TMDB Genre Endpoint
+
+Once genre filtering is implemented, Pelisgo can use the TMDB Discover API to fetch content filtered by a specific genre ID:
+
+```
+GET /discover/movie?with_genres={genre_id}
+GET /discover/tv?with_genres={genre_id}
+```
+
+Genre IDs are numeric and assigned by TMDB. The full list of IDs for movies and TV series can be retrieved from the TMDB genre list endpoints:
+
+```
+GET /genre/movie/list?api_key=YOUR_KEY&language=es-ES
+GET /genre/tv/list?api_key=YOUR_KEY&language=es-ES
+```
+
+For example, the TMDB ID for **Acción** (Action) in movies is `28`, and for **Animación** (Animation) it is `16`. These IDs are stable and can be hardcoded into genre links once the `generos.html` routing is in place.

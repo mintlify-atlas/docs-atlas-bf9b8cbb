@@ -1,0 +1,154 @@
+---
+title: "Theming and Visual Style Guide for Pelisgo"
+sidebarTitle: "Theming"
+description: "Pelisgo's dark visual theme: background colors, accent colors, typography, button styles, border treatments, and how to customize the look and feel."
+---
+
+Pelisgo uses a consistent dark theme defined entirely in `css/styles.css`. The global reset applies the background color and font family to every element via the `*` selector, so there is no risk of white flashes or inherited browser defaults slipping through. Every color decision, from the card borders to the search bar, traces back to the same small palette of values.
+
+## Color Palette
+
+The entire UI is built from four color values. Two neutrals — the near-black background and pure-white text — anchor the dark aesthetic, while `blueviolet` and its darker variant `#7b22d3` supply all interactive and accent color throughout the interface.
+
+| Token | Value | Usage |
+|---|---|---|
+| Background | `#1a1a1b` | Page background, cards, header |
+| Accent | `blueviolet` | Borders, hover states, search bar, buttons |
+| Accent Hover | `#7b22d3` | Button/link hover |
+| Text Primary | `white` | Titles, nav links |
+| Text Secondary | `#a1a1a1` | Release year in cards |
+
+The background color is applied in two places to guarantee full coverage:
+
+```css
+* {
+  background: #1a1a1b;
+}
+
+body {
+  background-color: #1a1a1b;
+}
+```
+
+The `*` selector handles every element box, while the explicit `body` rule ensures the document root is also covered — preventing any browser default white bleed around the edges.
+
+`blueviolet` surfaces throughout the UI as: the `border` on every `.card`, the `background-color` of the `#Buscador` search input, the `background-color` of `.btn-sv` server/source buttons, the `background-color` of genre dropdown items (`.menu-desplegable li a`), the `border` on the video player container (`#reproductor-box`), and the `border-bottom` separating poster images from card info.
+
+## Typography
+
+Font family is set globally through the `*` selector reset:
+
+```css
+* {
+  font-family: Arial, Helvetica, sans-serif;
+}
+```
+
+This system font stack ensures consistent rendering without any external font loading. The fallback chain (`Arial → Helvetica → sans-serif`) covers all major operating systems and browsers.
+
+Font sizes used across the UI:
+
+| Element | Size | Color |
+|---|---|---|
+| Nav links (`.li-d`) | `15px` | `white` |
+| Search placeholder (`#Buscador`) | `15px` | `white` |
+| Card title (`.info h3`) | `14px` | `white` |
+| Card year / date (`.info span`) | `12px` | `#a1a1a1` |
+| Genre dropdown links | `14px` | `white` |
+| Footer copyright (`.footerF`) | `15px` | `white` |
+
+Card titles use a `-webkit-box` clamp trick to prevent long titles from overflowing the card boundaries:
+
+```css
+.info h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+```
+
+## Navigation Link Styles
+
+Nav links (`.links`) are plain bold white anchors with no underline by default. The interactive accent appears on hover via a background color fill and border-radius, turning each link into a pill-shaped highlight:
+
+```css
+a.links:hover {
+  background-color: blueviolet;
+  transition: 0.5s;
+  border-radius: 15px;
+}
+```
+
+The `transition: 0.5s` applies to all properties, so the background fades in over half a second rather than snapping on instantly. The `padding: 10px 15px` on `.barra .li-d a` gives each link enough size for the hover pill to look proportional.
+
+## Search Input Style
+
+The search bar (`#Buscador`) inverts the typical input appearance — instead of a white field on a dark page, it uses the accent color as its background, making it stand out as an action element:
+
+```css
+#Buscador {
+  width: 200px;
+  height: 45px;
+  border-radius: 15px;
+  background-color: blueviolet;
+  padding-left: 10px;
+  color: white;
+  font-size: 15px;
+}
+```
+
+The placeholder text inherits the `white` color and is set to `font-weight: bold` via:
+
+```css
+#Buscador::placeholder {
+  color: white;
+  font-weight: bold;
+}
+```
+
+This ensures the "Buscar" placeholder is clearly readable against the `blueviolet` background before the user types anything.
+
+## Button Styles
+
+Source/server selection buttons (`.btn-sv`) on the video player page share the same accent color language as the search bar:
+
+```css
+.btn-sv {
+  background-color: blueviolet;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  margin: 5px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-sv:hover {
+  background-color: #7b22d3;
+  transform: scale(1.05);
+}
+```
+
+On hover, buttons darken to `#7b22d3` (a deeper blueviolet) and scale up by 5%, providing clear feedback without disrupting the surrounding layout.
+
+## Customizing the Theme
+
+Because `styles.css` uses direct color values rather than CSS custom properties, customization requires find-and-replace operations across the file. Here is where each aspect of the theme lives:
+
+1. **Accent color** — Replace every instance of `blueviolet` and `#7b22d3` with your chosen color and its darker hover variant. `blueviolet` appears on card borders, the search input, buttons, dropdown items, the video player border, and nav hover states. `#7b22d3` is used exclusively for hover/active states on buttons and dropdown links.
+
+2. **Background color** — Replace `#1a1a1b` with a lighter or different dark tone. It appears in the `*` global selector, `body`, `.head`, `.card`, and `background-color` declarations. Changing all instances simultaneously will shift the entire page background.
+
+3. **Font family** — Update the `font-family` value in the `*` selector to use any web-safe or `@import`-loaded typeface:
+   ```css
+   * {
+     font-family: 'Your Font', Arial, sans-serif;
+   }
+   ```
+   This single change propagates the new font to every element on the page.
+
+<Note>
+Pelisgo does not use CSS custom properties (variables such as `--accent-color: blueviolet`). Every color is a literal value written directly in each rule. To retheme the site, use your editor's **Find & Replace All** feature to swap color values throughout `styles.css`. If you plan to maintain or extend the project, consider refactoring the colors into CSS variables at the top of the file — this would make future theme changes a one-line edit.
+</Note>

@@ -1,0 +1,108 @@
+---
+title: "Real-Time Search for Movies and Series"
+sidebarTitle: "Search"
+description: "How Pelisgo's search bar fires TMDB search queries as you type, with debouncing logic that triggers after 2 characters and resets on clear."
+---
+
+Pelisgo includes a real-time search feature that is active on both the movies page (`index.html`) and the series page (`series.html`). As you type in the search bar, `main.js` fires a live query against the TMDB search API and immediately replaces the card grid with the matching results. The search is context-aware: it automatically targets `/search/movie` on the movies page and `/search/tv` on the series page, using the same `tipo` variable that controls the popular feed.
+
+## The Search Input
+
+The search bar is rendered inside the navbar as a plain `<input>` element, positioned at the far right of the navigation list:
+
+```html
+<input class="seach" id="Buscador" type="text" placeholder="Buscar">
+```
+
+It is styled in `styles.css` with a blueviolet background, white text and placeholder, rounded corners (`border-radius: 15px`), and a fixed width of `200px` on desktop (expanding to `90%` of the viewport on mobile).
+
+`main.js` grabs a reference to this element on load:
+
+```javascript
+const buscador = document.getElementById('Buscador');
+```
+
+## Search Event Handler
+
+The search is driven by a `keyup` event listener attached to the input element. The listener checks the current value length on every keystroke and applies two-condition logic to decide what to fetch:
+
+```javascript
+if (buscador) {
+    buscador.addEventListener('keyup', (e) => {
+        if (e.target.value.length > 2) {
+            obtenerContenido(e.target.value);
+        } else if (e.target.value === "") {
+            obtenerContenido();
+        }
+    });
+}
+```
+
+The two conditions work as follows:
+
+| Condition | Trigger | Action |
+|---|---|---|
+| `e.target.value.length > 2` | User has typed 3 or more characters | Calls `obtenerContenido(query)` with the current input value as the search term |
+| `e.target.value === ""` | The input field has been completely cleared | Calls `obtenerContenido()` with no arguments, reverting the grid to the popular list |
+
+The first condition acts as a lightweight debounce — short inputs (1–2 characters) are ignored entirely, preventing noisy API calls for single letters or two-letter words. The second condition ensures that clearing the search box cleanly restores the default popular content without requiring a page reload.
+
+The `if (buscador)` guard at the top prevents a JavaScript error if the element is missing from the page (for example, on any future pages that reuse `main.js` without a search bar).
+
+## Search Endpoint
+
+When a search query is provided, `obtenerContenido()` constructs the TMDB search endpoint instead of the popular endpoint:
+
+```
+https://api.themoviedb.org/3/search/{tipo}?api_key=YOUR_KEY&language=es-ES&query={searchTerm}
+```
+
+Where:
+- `{tipo}` is `movie` on `index.html` or `tv` on `series.html`
+- `{searchTerm}` is the raw value of the search input, URL-encoded automatically by `fetch()`
+
+For example, searching for "batman" on the movies page calls:
+
+```
+https://api.themoviedb.org/3/search/movie?api_key=YOUR_KEY&language=es-ES&query=batman
+```
+
+And on the series page:
+
+```
+https://api.themoviedb.org/3/search/tv?api_key=YOUR_KEY&language=es-ES&query=batman
+```
+
+## Search vs Popular Mode
+
+The `obtenerContenido()` function handles both modes through a single `if (query)` branch. When called with an argument it targets the search endpoint; when called with no argument (or an empty string, the default) it targets the popular endpoint:
+
+```javascript
+async function obtenerContenido(query = '') {
+    try {
+        let endpoint;
+        if (query) {
+            // Buscador
+            endpoint = `${BASE_URL}/search/${tipo}?api_key=${API_KEY}&language=es-ES&query=${query}`;
+        } else {
+            // Populares (Pelis o Series)
+            endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+        }
+
+        const respuesta = await fetch(endpoint);
+        const datos = await respuesta.json();
+        
+        if (datos.results) {
+            mostrarCards(datos.results);
+        }
+    } catch (error) {
+        console.error('Error al obtener los datos:', error);
+    }
+}
+```
+
+Both code paths return a `results` array in the same TMDB response shape, so `mostrarCards()` receives identical input regardless of whether the data came from a search query or the popular feed. The grid is fully replaced on every call (`seccionContenido.innerHTML = ''` runs first inside `mostrarCards()`), so switching between search results and the popular list is seamless.
+
+<Note>
+  Search results are rendered using the exact same `mostrarCards()` function as the popular feed. This means search result cards are visually identical to the default cards — same poster image, title, and year layout — with no additional template or styling required.
+</Note>

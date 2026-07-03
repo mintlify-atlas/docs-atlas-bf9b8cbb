@@ -1,0 +1,143 @@
+---
+title: "Movie Browsing with TMDB Popular Endpoint"
+sidebarTitle: "Movies"
+description: "How Pelisgo fetches and displays popular movies from the TMDB API, including the card rendering logic, poster images, and title/year display."
+---
+
+Pelisgo's movies feature is the core of the application, living on `index.html`. When the page loads, it automatically calls the TMDB `movie/popular` endpoint to fetch a ranked list of currently popular movies, then renders each result as a visual card in a responsive grid. The entire flow — from API request to DOM insertion — is handled by a single shared `main.js` module.
+
+## The Movies Page
+
+The movies page (`index.html`) is composed of three major structural sections:
+
+- **Sticky Header (`.head`)** — A fixed-position header that remains visible as you scroll. It holds the Pelisgo logo (linking back to `index.html`) and the navigation bar.
+- **Navigation Bar (`.barra`)** — A `<nav>` element containing an unordered list (`.li-d`) with links to Movies, Series, the Genres dropdown, and the live search input.
+- **Main Content Grid (`.seccionPeliculas`)** — A `<main>` element that acts as the card container. It is pre-populated with 24 empty `<div class="card">` placeholders in the HTML; these are replaced entirely by JavaScript-generated cards once the API responds.
+
+```html
+<header class="head">
+  <!-- logo + nav bar -->
+</header>
+
+<main class="seccionPeliculas">
+  <div class="card"></div>
+  <!-- ... 24 placeholder cards total -->
+</main>
+```
+
+The grid uses CSS Flexbox (`display: flex; flex-wrap: wrap; justify-content: center`) with a `max-width` of `1200px` and a `gap` of `20px` between cards.
+
+## Fetching Popular Movies
+
+When the page loads, `main.js` calls `obtenerContenido()` with no arguments. The function detects that no search query was provided and builds the popular movies endpoint URL using the `tipo` variable (which resolves to `'movie'` on `index.html`).
+
+```javascript
+const API_KEY = '62d0e228965166bf48326dcfc99023d3';
+const BASE_URL = 'https://api.themoviedb.org/3';
+
+const esPaginaSeries = window.location.pathname.includes('series');
+const tipo = esPaginaSeries ? 'tv' : 'movie';
+
+async function obtenerContenido(query = '') {
+    try {
+        let endpoint;
+        if (query) {
+            // Buscador
+            endpoint = `${BASE_URL}/search/${tipo}?api_key=${API_KEY}&language=es-ES&query=${query}`;
+        } else {
+            // Populares (Pelis o Series)
+            endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+        }
+
+        const respuesta = await fetch(endpoint);
+        const datos = await respuesta.json();
+        
+        if (datos.results) {
+            mostrarCards(datos.results);
+        }
+    } catch (error) {
+        console.error('Error al obtener los datos:', error);
+    }
+}
+
+// Inicio
+obtenerContenido();
+```
+
+The endpoint called for the movies page is:
+
+```
+https://api.themoviedb.org/3/movie/popular?api_key=YOUR_KEY&language=es-ES&page=1
+```
+
+The response is a JSON object. The `datos.results` array — containing up to 20 movie objects per page — is passed directly to `mostrarCards()`.
+
+## Card Rendering
+
+The `mostrarCards()` function iterates over the results array, builds a `<div class="card">` element for each item, and appends it to `.seccionPeliculas`. Before rendering, the function resolves both the title and year from the raw API fields, and provides a fallback image URL when `poster_path` is `null`.
+
+```javascript
+function mostrarCards(items) {
+    seccionContenido.innerHTML = ''; 
+    
+    items.forEach(item => {
+        // Validación de datos según el tipo (Pelicula vs Serie)
+        const titulo = esPaginaSeries ? item.name : item.title;
+        const fechaOriginal = esPaginaSeries ? item.first_air_date : item.release_date;
+        const año = fechaOriginal ? fechaOriginal.split('-')[0] : 'S/N';
+
+        const poster = item.poster_path 
+            ? IMAGE_BASE_URL + item.poster_path 
+            : 'https://via.placeholder.com/500x750?text=Sin+Imagen';
+
+        const card = document.createElement('div');
+        card.classList.add('card');
+
+        card.innerHTML = `
+            <img src="${poster}" alt="${titulo}">
+            <div class="info">
+                <h3 class="tituloPeli">${titulo}</h3>
+                <span class="fecha">${año}</span>
+            </div>
+        `;
+        seccionContenido.appendChild(card);
+    });
+}
+```
+
+Each rendered card contains:
+
+| Element | Class | Content |
+|---|---|---|
+| `<img>` | — | Poster image, or placeholder if `poster_path` is `null` |
+| `<div>` | `.info` | Container for title and year |
+| `<h3>` | `.tituloPeli` | Movie title in white, bold, 14px |
+| `<span>` | `.fecha` | 4-digit release year in `#a1a1a1` grey |
+
+When `poster_path` is `null`, the fallback image used is:
+
+```
+https://via.placeholder.com/500x750?text=Sin+Imagen
+```
+
+## TMDB Movie Object Fields
+
+The following fields are consumed from each object in the `results` array returned by TMDB:
+
+| Field | Type | Usage |
+|---|---|---|
+| `item.title` | `string` | The movie's display title, rendered inside `<h3 class="tituloPeli">` |
+| `item.release_date` | `string` | Full ISO date (e.g. `"2024-07-19"`); `.split('-')[0]` extracts the 4-digit year |
+| `item.poster_path` | `string \| null` | Relative path appended to `https://image.tmdb.org/t/p/w500` to form the full poster URL |
+
+The full poster URL is constructed as:
+
+```
+https://image.tmdb.org/t/p/w500{item.poster_path}
+```
+
+For example: `https://image.tmdb.org/t/p/w500/abc123.jpg`
+
+<Tip>
+  The `language=es-ES` query parameter controls the language of titles, overviews, and dates returned by TMDB. You can swap it for any valid BCP 47 locale code — for example, `language=en-US` for English, `language=pt-BR` for Brazilian Portuguese, or `language=fr-FR` for French — to localise all displayed content accordingly.
+</Tip>

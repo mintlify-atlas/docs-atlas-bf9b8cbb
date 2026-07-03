@@ -1,0 +1,97 @@
+---
+title: "Pelisgo: Movie & Series Browser Built on TMDB"
+sidebarTitle: "Introduction"
+description: "Pelisgo is a lightweight, zero-dependency frontend app that uses the TMDB v3 REST API to browse popular movies and TV series with real-time search."
+---
+
+Pelisgo is a dark-themed movie and TV series browser built entirely with plain HTML, CSS, and vanilla JavaScript — no frameworks, no build tools, no runtime dependencies. It solves a simple problem: giving developers, students, and movie enthusiasts a minimal, readable codebase they can clone, run instantly in any browser, and extend freely. Whether you're learning how to consume a REST API with native `fetch()`, building out a personal watchlist UI, or just want a fast way to browse what's popular on TMDB right now, Pelisgo gives you a clean, functional starting point.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Popular Movies" icon="film" href="/features/movies">
+    Browse the current TMDB popular movies list, rendered as a responsive poster-card grid with title and release year.
+  </Card>
+  <Card title="TV Series" icon="tv" href="/features/series">
+    Switch to the TV series catalogue with a single navigation click. The same card UI adapts automatically to series metadata.
+  </Card>
+  <Card title="Real-Time Search" icon="magnifying-glass" href="/features/search">
+    Type in the search bar and results update live after three characters — no button press needed, no page reload.
+  </Card>
+  <Card title="Genre Navigation" icon="list" href="/features/genres">
+    A dropdown nav menu exposes genre categories (Acción, Terror, Comedia, and more) ready to be wired to filtered TMDB endpoints.
+  </Card>
+</CardGroup>
+
+## Architecture Overview
+
+Pelisgo intentionally keeps its footprint as small as possible. The entire project is two HTML pages, one shared JavaScript module, and one stylesheet:
+
+| File | Role |
+|---|---|
+| `index.html` | Movies page — navbar, card grid scaffold, and a `<script>` tag loading `main.js` |
+| `series.html` | TV series page — structurally identical to `index.html`; content differs via URL-based detection in `main.js` |
+| `js/main.js` | Single shared module that handles all TMDB API calls, card rendering, and search events for both pages |
+| `css/styles.css` | Global stylesheet — dark theme reset, sticky header, card grid, hover effects, and responsive breakpoints |
+
+There is no routing library, no component framework, and no module bundler. Both HTML pages load `js/main.js` via a plain `<script>` tag with the `defer` attribute:
+
+```html
+<!-- Both index.html and series.html end with this identical line -->
+<script src="js/main.js" defer></script>
+```
+
+When the script runs, it inspects the current URL to decide what content to fetch — a single file drives both pages.
+
+## How Page Detection Works
+
+The key to Pelisgo's shared-module design is a two-line URL check at the top of `js/main.js`. Immediately after declaring the API constants, the script reads `window.location.pathname` and checks whether the string `'series'` appears in it:
+
+```js
+// DETECCIÓN: ¿Estamos en series.html o index.html?
+// Esto busca la palabra "series" en la URL de tu navegador
+const esPaginaSeries = window.location.pathname.includes('series');
+const tipo = esPaginaSeries ? 'tv' : 'movie';
+```
+
+The resolved `tipo` variable (`'tv'` or `'movie'`) is then interpolated directly into every TMDB endpoint string. When a visitor is on `index.html`, `tipo` is `'movie'` and the popular endpoint becomes `/movie/popular`. When they navigate to `series.html`, `tipo` becomes `'tv'` and the same code hits `/tv/popular` instead:
+
+```js
+// Popular (Pelis o Series)
+endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+```
+
+The same switch applies to the search endpoint and to which metadata fields are read — `item.title` vs `item.name` for display titles, and `item.release_date` vs `item.first_air_date` for years:
+
+```js
+const titulo = esPaginaSeries ? item.name : item.title;
+const fechaOriginal = esPaginaSeries ? item.first_air_date : item.release_date;
+```
+
+This pattern means every feature — popular listing, live search, card rendering — is automatically bifurcated across both pages with zero duplicated logic.
+
+## Tech Stack
+
+| Layer | Choice | Notes |
+|---|---|---|
+| Markup | Plain HTML5 | Two `.html` files; no templating engine |
+| Styling | Plain CSS3 | One `styles.css` file; CSS Flexbox for layout and grid |
+| Logic | Vanilla JavaScript (ES2017+) | `async/await`, native `fetch()`, DOM manipulation |
+| Data | TMDB REST API v3 | `https://api.themoviedb.org/3` — JSON responses, no SDK |
+| Build | None | Open `index.html` directly in a browser |
+| Dependencies | None | Zero `node_modules`, zero `package.json` |
+
+All network requests use the browser-native `fetch()` API inside an `async/await` function, keeping the code concise and easy to follow:
+
+```js
+const respuesta = await fetch(endpoint);
+const datos = await respuesta.json();
+
+if (datos.results) {
+    mostrarCards(datos.results);
+}
+```
+
+<Note>
+  A valid TMDB API key (v3 auth) is required to run Pelisgo. The app will silently return no results if the key is missing or invalid. Sign up for a free key at [themoviedb.org](https://www.themoviedb.org/) — see the [Quickstart](/quickstart) for step-by-step instructions.
+</Note>

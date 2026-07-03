@@ -1,0 +1,73 @@
+{
+  "projectType": "frontend",
+  "projectName": "Pelisgo",
+  "projectDescription": "A dark-themed movie and TV series browsing web app powered by The Movie Database (TMDB) API, featuring real-time search, genre filtering, and responsive card-based content display.",
+  "theme": "almond",
+  "primaryColor": "#48ceed",
+  "lightColor": "#c266e6",
+  "darkColor": "#4d70a6",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "project-structure"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/movies",
+              "features/series",
+              "features/search",
+              "features/genres"
+            ]
+          },
+          {
+            "group": "Integration",
+            "pages": [
+              "integration/tmdb-api",
+              "integration/configuration"
+            ]
+          },
+          {
+            "group": "UI & Styling",
+            "pages": [
+              "ui/layout",
+              "ui/responsive-design",
+              "ui/theming"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Browse popular movies powered by the TMDB API",
+    "Browse popular TV series with dedicated series page",
+    "Real-time search bar for movies and series",
+    "Genre dropdown menu with 16 genre categories",
+    "Responsive card grid layout (desktop, tablet, mobile)",
+    "Dynamic card rendering with poster images, title, and release year",
+    "Dark UI theme with blueviolet accent styling",
+    "Single shared JavaScript module handles both movies and series pages"
+  ],
+  "publicApiSurface": [
+    "obtenerContenido(query?) — fetches popular content or search results from TMDB",
+    "mostrarCards(items) — renders an array of movie/series objects as HTML cards",
+    "TMDB GET /movie/popular — fetches popular movies",
+    "TMDB GET /tv/popular — fetches popular TV series",
+    "TMDB GET /search/movie?query= — searches movies by title",
+    "TMDB GET /search/tv?query= — searches TV series by title",
+    "index.html — movies page",
+    "series.html — TV series page",
+    "generos.html — genres page (in progress)",
+    "css/styles.css — global stylesheet",
+    "js/main.js — shared JS module for data fetching and rendering"
+  ]
+}

@@ -1,0 +1,112 @@
+---
+title: "Pelisgo Page Layout: Header, Grid, and Footer"
+sidebarTitle: "Layout"
+description: "How Pelisgo structures each page — a sticky header with navigation, a CSS Flexbox card grid for content, and a simple footer with copyright info."
+---
+
+Every page in Pelisgo is built around three distinct zones: a sticky top header (`<header class="head">`), a flex-wrap card grid (`<main class="seccionPeliculas">`), and a footer. This consistent structure ensures every section of the site — movies, series, and genre listings — presents content in the same familiar shell.
+
+## Header / Navigation Bar
+
+The header is rendered as a `<header class="head">` element and sticks to the top of the viewport as the user scrolls. It sits above all other page content using `z-index: 1000` and maintains a fixed height of `85px`.
+
+```css
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #1a1a1b;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 85px;
+}
+```
+
+The header contains three primary elements laid out horizontally via Flexbox:
+
+- **Logo** — An `<img>` wrapped in an `<a href="index.html">` link, so clicking the logo always returns the user to the movies home page. The logo image is `81px` tall with `width: auto` to preserve its aspect ratio.
+- **Navigation links** — A `<nav class="barra">` containing an unordered list (`.li-d`) with three items:
+  - **Peliculas** — links to `index.html`, the main movies browse page.
+  - **Series** — links to `series.html`, the TV series browse page.
+  - **Géneros** — a dropdown trigger that, on hover, reveals a `.menu-desplegable` grid of 16 genre links (Acción, Aventura, Comedia, Documental, Fantasía, and more).
+- **Search input** — An `<input id="Buscador">` text field styled with a `blueviolet` background, white placeholder text, and a `15px` font size. It is placed as the last item in the nav list and offset with `padding-left: 180px` on desktop.
+
+## Card Grid
+
+Movie and series results populate a `<main class="seccionPeliculas">` flex container. Flexbox's `flex-wrap: wrap` allows cards to flow naturally into as many columns as the viewport width allows before wrapping to a new row.
+
+```css
+.seccionPeliculas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  row-gap: 50px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+```
+
+Key layout properties:
+
+| Property | Value | Effect |
+|---|---|---|
+| `max-width` | `1200px` | Caps the grid width and centers it on wide screens |
+| `margin: 0 auto` | — | Horizontally centers the grid in the viewport |
+| `gap` | `20px` | Horizontal spacing between cards in the same row |
+| `row-gap` | `50px` | Vertical spacing between card rows, giving breathing room between content rows |
+| `justify-content` | `center` | Centers cards within each row rather than aligning them left |
+| `padding` | `20px` | Insets the grid from the edge of its container |
+
+Cards wrap automatically — when the combined width of cards and gaps exceeds `1200px`, Flexbox starts a new row. No JavaScript or media-query columns are needed for the grid reflow.
+
+## Individual Card
+
+Each piece of content is rendered as a `<div class="card">` containing a poster image and an `.info` sub-section with title and release year.
+
+```css
+.card {
+  text-align: center;
+  width: 180px;
+  height: 380px;
+  border-radius: 10px;
+  border: 3px groove blueviolet;
+  background-color: #1a1a1b;
+  transition: transform 0.3s linear;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+```
+
+Cards use an internal column Flexbox layout (`flex-direction: column`) so the poster image fills the top portion and the text info stacks underneath. The `overflow: hidden` clips the poster to the card's rounded corners.
+
+**Hover lift effect** — a subtle upward transform is applied when the user mouses over a card:
+
+```css
+.card:hover {
+  transform: translateY(-10px);
+}
+```
+
+The `transition: transform 0.3s linear` on the base `.card` rule animates this movement smoothly over 300 ms, giving the grid an interactive, tactile feel without any JavaScript.
+
+Inside each card:
+- **Poster image** — `width: 100%`, fixed height of `240px`, `object-fit: cover` to fill the space without distortion. A `2px solid blueviolet` border separates the image from the text below.
+- **`.info` section** — transparent background, `10px` padding. Contains an `<h3>` for the title (`14px`, white, clamped to avoid overflow) and a `<span>` for the release year (`12px`, `#a1a1a1`).
+
+## Footer
+
+The footer is a minimal single-line copyright notice rendered inside a wrapper `<div class="fo">`:
+
+```html
+<div class="fo">
+  <footer>
+    <h3 class="footerF">© 2026 StreamPulse. Todos los derechos reservados</h3>
+  </footer>
+</div>
+```
+
+The `.fo` wrapper uses `display: flex` with `padding: 150px` on desktop to provide generous vertical breathing space below the card grid. The `.footerF` heading is styled in `white` at `15px`. On mobile viewports the wrapper switches to `padding: 50px 20px` and centers the text — see [Responsive Design](/ui/responsive-design) for breakpoint details.

@@ -1,47 +1,182 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Pelisgo in 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Learn how to clone Pelisgo, add your TMDB API key, and serve the site locally to start browsing movies and TV series."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+By the end of this guide you will have a fully working local copy of Pelisgo running in your browser. You'll clone the repository, obtain a free TMDB API key, drop it into the one place it belongs in the code, and open the app — all in under five minutes. No package managers, no build commands, and no prior backend knowledge required.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+
+  <Step title="Clone the repository">
+    Clone the project from GitHub to your local machine. The repository contains everything the app needs — there is nothing to install afterwards.
 
     ```bash
-    npm install your-package
+    git clone https://github.com/LuisED18/proyecto-pagina-peliculas.git
+    cd proyecto-pagina-peliculas
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+  <Step title="Get a TMDB API key">
+    Pelisgo fetches all movie and series data from [The Movie Database (TMDB)](https://www.themoviedb.org/). You need a free API key to make those requests.
 
-    ```bash
-    your-cli start
-    ```
+    1. Go to [themoviedb.org](https://www.themoviedb.org/) and create a free account.
+    2. After logging in, click your avatar in the top-right corner and choose **Settings**.
+    3. In the left sidebar, select **API**.
+    4. Under *API Key (v3 auth)*, click **Create** if you haven't already, fill in the short form (choose *Developer* and describe any personal project), and submit.
+    5. Copy the long alphanumeric string shown as **API Key (v3 auth)** — that is the value you will paste in the next step.
   </Step>
+
+  <Step title="Add your API key">
+    Open `js/main.js` in any text editor. The very first line declares the API key constant:
+
+    ```js
+    const API_KEY = '62d0e228965166bf48326dcfc99023d3';
+    ```
+
+    Replace the placeholder value with your own key:
+
+    ```js
+    const API_KEY = 'YOUR_TMDB_V3_API_KEY_HERE';
+    ```
+
+    The two lines below it set the base URLs and do not need to change:
+
+    ```js
+    const BASE_URL = 'https://api.themoviedb.org/3';
+    const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+    ```
+
+    Save the file. That is the only configuration change required.
+  </Step>
+
+  <Step title="Serve the project">
+    Because Pelisgo is pure static HTML, you can open it directly from the filesystem or through any static server. Pick whichever method suits you:
+
+    <CodeGroup>
+
+    ```bash Direct (macOS / Linux)
+    # Open the movies page straight from disk
+    open index.html
+    ```
+
+    ```bash Python (built-in)
+    # Serve on http://localhost:8000
+    python -m http.server 8000
+    ```
+
+    ```bash Node (npx)
+    # Serve on http://localhost:3000
+    npx serve .
+    ```
+
+    </CodeGroup>
+
+    On Windows you can double-click `index.html` in File Explorer to open it in your default browser.
+
+    <Note>
+      Some browsers block `fetch()` requests when a page is loaded via the `file://` protocol. If you see no results when opening `index.html` directly, use the Python or Node server option instead so the page is served over `http://localhost`.
+    </Note>
+  </Step>
+
+  <Step title="Browse the app">
+    With the app open in your browser, you're ready to explore:
+
+    - **Movies page** (`index.html`) — loads automatically on start and displays the current TMDB popular movies grid. Each card shows the poster, title, and release year.
+    - **Series page** (`series.html`) — click **Series** in the navigation bar to switch to the TV series catalogue. The same card grid re-renders with TV show data.
+    - **Search** — type any movie or series title in the blueviolet search bar in the top-right of the navbar. Results update live after you've typed at least three characters. Clear the field to return to the popular list.
+    - **Genres dropdown** — hover over **Generos** in the nav to see the genre list. Genre filtering is currently in progress and will be wired to TMDB's genre endpoints in a future update.
+  </Step>
+
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Full Source: `js/main.js`
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+The complete JavaScript module that powers both pages is short enough to read in one sitting:
+
+```js expandable
+const API_KEY = '62d0e228965166bf48326dcfc99023d3';
+const BASE_URL = 'https://api.themoviedb.org/3';
+const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
+const seccionContenido = document.querySelector('.seccionPeliculas');
+const buscador = document.getElementById('Buscador');
+
+// DETECCIÓN: ¿Estamos en series.html o index.html?
+// Esto busca la palabra "series" en la URL de tu navegador
+const esPaginaSeries = window.location.pathname.includes('series');
+const tipo = esPaginaSeries ? 'tv' : 'movie';
+
+// 1. Obtener Datos (Dinámico: Películas o Series)
+async function obtenerContenido(query = '') {
+    try {
+        let endpoint;
+        if (query) {
+            // Buscador
+            endpoint = `${BASE_URL}/search/${tipo}?api_key=${API_KEY}&language=es-ES&query=${query}`;
+        } else {
+            // Populares (Pelis o Series)
+            endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
+        }
+
+        const respuesta = await fetch(endpoint);
+        const datos = await respuesta.json();
+        
+        if (datos.results) {
+            mostrarCards(datos.results);
+        }
+    } catch (error) {
+        console.error('Error al obtener los datos:', error);
+    }
+}
+
+// 2. Mostrar en el HTML
+function mostrarCards(items) {
+    seccionContenido.innerHTML = ''; 
+    
+    items.forEach(item => {
+        // Validación de datos según el tipo (Pelicula vs Serie)
+        const titulo = esPaginaSeries ? item.name : item.title;
+        const fechaOriginal = esPaginaSeries ? item.first_air_date : item.release_date;
+        const año = fechaOriginal ? fechaOriginal.split('-')[0] : 'S/N';
+
+        const poster = item.poster_path 
+            ? IMAGE_BASE_URL + item.poster_path 
+            : 'https://via.placeholder.com/500x750?text=Sin+Imagen';
+
+        const card = document.createElement('div');
+        card.classList.add('card');
+
+        card.innerHTML = `
+            <img src="${poster}" alt="${titulo}">
+            <div class="info">
+                <h3 class="tituloPeli">${titulo}</h3>
+                <span class="fecha">${año}</span>
+            </div>
+        `;
+        seccionContenido.appendChild(card);
+    });
+}
+
+// 3. Evento de Búsqueda (Se adapta automáticamente)
+if (buscador) {
+    buscador.addEventListener('keyup', (e) => {
+        if (e.target.value.length > 2) {
+            obtenerContenido(e.target.value);
+        } else if (e.target.value === "") {
+            obtenerContenido();
+        }
+    });
+}
+
+// Inicio
+obtenerContenido();
+```
+
+<Tip>
+  Never commit your real TMDB API key to a public repository. Add a `.env` file or use a secrets manager if you plan to deploy or share your fork. At a minimum, add your key file to `.gitignore` before your first commit.
 </Tip>
+
+<Warning>
+  TMDB free-tier API keys are subject to rate limits (roughly 40 requests per 10 seconds). Rapid successive searches or bulk page loads may result in `429 Too Many Requests` responses. If you hit the limit, wait a few seconds and try again. For production use, consider caching responses or upgrading to a TMDB Pro account.
+</Warning>
