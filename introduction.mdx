@@ -1,5 +1,5 @@
 ---
-title: "Pelisgo: Movie & Series Browser Built on TMDB"
+title: "Pelisgo: Dark-Themed Movie and TV Series Browser on TMDB"
 sidebarTitle: "Introduction"
 description: "Pelisgo is a lightweight, zero-dependency frontend app that uses the TMDB v3 REST API to browse popular movies and TV series with real-time search."
 ---
@@ -25,12 +25,13 @@ Pelisgo is a dark-themed movie and TV series browser built entirely with plain H
 
 ## Architecture Overview
 
-Pelisgo intentionally keeps its footprint as small as possible. The entire project is two HTML pages, one shared JavaScript module, and one stylesheet:
+Pelisgo intentionally keeps its footprint as small as possible. The entire project is three HTML pages, one shared JavaScript module, and one stylesheet:
 
 | File | Role |
 |---|---|
 | `index.html` | Movies page — navbar, card grid scaffold, and a `<script>` tag loading `main.js` |
 | `series.html` | TV series page — structurally identical to `index.html`; content differs via URL-based detection in `main.js` |
+| `generos.html` | Genres page — currently a placeholder file pending implementation of filtered TMDB genre endpoints |
 | `js/main.js` | Single shared module that handles all TMDB API calls, card rendering, and search events for both pages |
 | `css/styles.css` | Global stylesheet — dark theme reset, sticky header, card grid, hover effects, and responsive breakpoints |
 
@@ -47,7 +48,7 @@ When the script runs, it inspects the current URL to decide what content to fetc
 
 The key to Pelisgo's shared-module design is a two-line URL check at the top of `js/main.js`. Immediately after declaring the API constants, the script reads `window.location.pathname` and checks whether the string `'series'` appears in it:
 
-```js
+```javascript
 // DETECCIÓN: ¿Estamos en series.html o index.html?
 // Esto busca la palabra "series" en la URL de tu navegador
 const esPaginaSeries = window.location.pathname.includes('series');
@@ -56,14 +57,14 @@ const tipo = esPaginaSeries ? 'tv' : 'movie';
 
 The resolved `tipo` variable (`'tv'` or `'movie'`) is then interpolated directly into every TMDB endpoint string. When a visitor is on `index.html`, `tipo` is `'movie'` and the popular endpoint becomes `/movie/popular`. When they navigate to `series.html`, `tipo` becomes `'tv'` and the same code hits `/tv/popular` instead:
 
-```js
-// Popular (Pelis o Series)
+```javascript
+// Populares (Pelis o Series)
 endpoint = `${BASE_URL}/${tipo}/popular?api_key=${API_KEY}&language=es-ES&page=1`;
 ```
 
 The same switch applies to the search endpoint and to which metadata fields are read — `item.title` vs `item.name` for display titles, and `item.release_date` vs `item.first_air_date` for years:
 
-```js
+```javascript
 const titulo = esPaginaSeries ? item.name : item.title;
 const fechaOriginal = esPaginaSeries ? item.first_air_date : item.release_date;
 ```
@@ -74,7 +75,7 @@ This pattern means every feature — popular listing, live search, card renderin
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Markup | Plain HTML5 | Two `.html` files; no templating engine |
+| Markup | Plain HTML5 | Three `.html` files; no templating engine |
 | Styling | Plain CSS3 | One `styles.css` file; CSS Flexbox for layout and grid |
 | Logic | Vanilla JavaScript (ES2017+) | `async/await`, native `fetch()`, DOM manipulation |
 | Data | TMDB REST API v3 | `https://api.themoviedb.org/3` — JSON responses, no SDK |
@@ -83,7 +84,7 @@ This pattern means every feature — popular listing, live search, card renderin
 
 All network requests use the browser-native `fetch()` API inside an `async/await` function, keeping the code concise and easy to follow:
 
-```js
+```javascript
 const respuesta = await fetch(endpoint);
 const datos = await respuesta.json();
 

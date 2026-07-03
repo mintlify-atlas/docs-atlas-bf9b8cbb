@@ -1,5 +1,5 @@
 ---
-title: "Pelisgo Page Layout: Header, Grid, and Footer"
+title: "Pelisgo Page Layout: Header, Card Grid, and Footer"
 sidebarTitle: "Layout"
 description: "How Pelisgo structures each page — a sticky header with navigation, a CSS Flexbox card grid for content, and a simple footer with copyright info."
 ---
@@ -20,6 +20,8 @@ The header is rendered as a `<header class="head">` element and sticks to the to
   justify-content: space-around;
   align-items: center;
   height: 85px;
+  padding: 5px 10px;
+  margin-bottom: 200px;
 }
 ```
 
@@ -46,6 +48,7 @@ Movie and series results populate a `<main class="seccionPeliculas">` flex conta
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  margin-top: -150px;
 }
 ```
 
@@ -59,6 +62,7 @@ Key layout properties:
 | `row-gap` | `50px` | Vertical spacing between card rows, giving breathing room between content rows |
 | `justify-content` | `center` | Centers cards within each row rather than aligning them left |
 | `padding` | `20px` | Insets the grid from the edge of its container |
+| `margin-top` | `-150px` | Pulls the grid upward to close the gap created by the header's `margin-bottom: 200px` |
 
 Cards wrap automatically — when the combined width of cards and gaps exceeds `1200px`, Flexbox starts a new row. No JavaScript or media-query columns are needed for the grid reflow.
 
@@ -78,6 +82,8 @@ Each piece of content is rendered as a `<div class="card">` containing a poster 
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 0;
+  cursor: pointer;
 }
 ```
 

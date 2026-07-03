@@ -1,7 +1,7 @@
 ---
-title: "Get Started with Pelisgo in 5 Minutes"
+title: "Run Pelisgo Locally: Clone, Configure, and Start Browsing"
 sidebarTitle: "Quickstart"
-description: "Learn how to clone Pelisgo, add your TMDB API key, and serve the site locally to start browsing movies and TV series."
+description: "Clone the Pelisgo repo, add your TMDB API v3 key to js/main.js, and open the app in your browser — no installs, no build step required."
 ---
 
 By the end of this guide you will have a fully working local copy of Pelisgo running in your browser. You'll clone the repository, obtain a free TMDB API key, drop it into the one place it belongs in the code, and open the app — all in under five minutes. No package managers, no build commands, and no prior backend knowledge required.
@@ -30,19 +30,19 @@ By the end of this guide you will have a fully working local copy of Pelisgo run
   <Step title="Add your API key">
     Open `js/main.js` in any text editor. The very first line declares the API key constant:
 
-    ```js
+    ```javascript
     const API_KEY = '62d0e228965166bf48326dcfc99023d3';
     ```
 
     Replace the placeholder value with your own key:
 
-    ```js
+    ```javascript
     const API_KEY = 'YOUR_TMDB_V3_API_KEY_HERE';
     ```
 
     The two lines below it set the base URLs and do not need to change:
 
-    ```js
+    ```javascript
     const BASE_URL = 'https://api.themoviedb.org/3';
     const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
     ```
@@ -94,7 +94,7 @@ By the end of this guide you will have a fully working local copy of Pelisgo run
 
 The complete JavaScript module that powers both pages is short enough to read in one sitting:
 
-```js expandable
+```javascript expandable
 const API_KEY = '62d0e228965166bf48326dcfc99023d3';
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';

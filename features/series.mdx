@@ -1,7 +1,7 @@
 ---
-title: "TV Series Browsing with TMDB TV Endpoint"
+title: "Browsing Popular TV Series with the TMDB API on Pelisgo"
 sidebarTitle: "Series"
-description: "How Pelisgo fetches and renders popular TV series from the TMDB API, auto-detecting the series page via URL pathname inspection."
+description: "How Pelisgo fetches and renders popular TV series from the TMDB API, using URL pathname inspection to auto-detect and switch to series mode."
 ---
 
 Pelisgo's TV series feature lives on `series.html` and is powered by the exact same `main.js` module that drives the movies page. There is no separate script — instead, `main.js` inspects the current page URL at runtime and dynamically switches the TMDB endpoint and the result field names between `movie` and `tv` mode. This means all logic for fetching, rendering, and searching series is handled inside the shared module with zero code duplication.

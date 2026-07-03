@@ -1,7 +1,7 @@
 ---
-title: "TMDB API Integration in Pelisgo"
+title: "TMDB API Integration Guide for Pelisgo Movie Browser"
 sidebarTitle: "TMDB API"
-description: "How Pelisgo authenticates with and queries the TMDB v3 REST API — endpoints used, response shapes consumed, and the browser-native fetch() implementation."
+description: "How Pelisgo authenticates with and queries the TMDB v3 REST API — endpoints used, response shapes consumed, and the fetch() implementation."
 ---
 
 Pelisgo integrates with the TMDB v3 REST API using a plain API key passed as a query parameter. All requests are made entirely client-side using the browser-native `fetch()` API — there is no backend server or proxy layer. When a page loads (or when the user types in the search box), `main.js` constructs the appropriate endpoint URL and fetches JSON data directly from TMDB's servers.
